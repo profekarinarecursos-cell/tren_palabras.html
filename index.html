@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>El Tren de las Palabras 🚂</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', 'Arial Rounded MT Bold', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #333;
+  }
+  .screen {
+    display: none;
+    min-height: 100vh;
+    padding: 16px;
+    animation: fadeIn 0.4s ease;
+  }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%,100%{transform:scale(1)}50%{transform:scale(1.15)} }
+  @keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)} }
+  @keyframes pop { 0%{transform:scale(0)}80%{transform:scale(1.1)}100%{transform:scale(1)} }
+  @keyframes confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+  }
+  .confetti {
+    position: fixed; width: 10px; height: 10px; border-radius: 50%;
+    animation: confetti 2s ease-out forwards; z-index: 9999;
+  }
+
+  /* Inicio */
+  .inicio-box { text-align: center; margin-top: 8vh; }
+  .inicio-box h1 {
+    font-size: 2.2rem; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+  }
+  .inicio-box .tren-emoji { font-size: 5rem; display: block; margin: 20px 0; animation: bounce 2s infinite; }
+  .btn-principal {
+    background: #FFD700; color: #333; border: none; border-radius: 50px;
+    padding: 18px 40px; font-size: 1.4rem; font-weight: bold;
+    box-shadow: 0 6px 0 #DAA520, 0 8px 15px rgba(0,0,0,0.2);
+    cursor: pointer; transition: all 0.1s; margin-top: 20px;
+    font-family: inherit;
+  }
+  .btn-principal:active { transform: translateY(4px); box-shadow: 0 2px 0 #DAA520; }
+
+  /* Menú letras */
+  .menu-header { color: #fff; text-align: center; margin-bottom: 16px; text-shadow: 1px 1px 3px rgba(0,0,0,0.3); }
+  .menu-header h2 { font-size: 1.6rem; }
+  .letras-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    width: 100%; max-width: 420px;
+  }
+  .letra-card {
+    aspect-ratio: 1; border-radius: 16px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-size: 2rem; font-weight: bold;
+    color: #fff; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: transform 0.15s; position: relative; overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.3);
+  }
+  .letra-card:active { transform: scale(0.95); }
+  .letra-card .letra-nombre { font-size: 2.2rem; line-height: 1; }
+  .letra-card .letra-emoji { font-size: 1.4rem; margin-top: 4px; }
+  .letra-card.completada::after {
+    content: "✅"; position: absolute; top: 4px; right: 4px; font-size: 1rem;
+  }
+
+  /* Estaciones */
+  .estacion-header { width: 100%; text-align: center; margin-bottom: 12px; }
+  .estacion-header .letra-titulo {
+    font-size: 2.5rem; font-weight: bold; color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  .estacion-header .sonido { font-size: 1.1rem; color: #fff; opacity: 0.9; margin-top: 4px; }
+  .tabs {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px;
+    width: 100%; justify-content: center; margin-bottom: 12px;
+  }
+  .tab {
+    min-width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: bold; color: #fff;
+    background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.4);
+    cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+  }
+  .tab.active { background: #FFD700; color: #333; border-color: #FFD700; transform: scale(1.1); }
+  .tab.completada { background: #2ECC71; border-color: #2ECC71; }
+  .tab.bloqueada { opacity: 0.4; cursor: not-allowed; }
+
+  .estacion-contenido {
+    background: #fff; border-radius: 20px; padding: 16px;
+    width: 100%; max-width: 480px; min-height: 320px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .estacion-titulo { font-size: 1.3rem; font-weight: bold; margin-bottom: 12px; text-align: center; color: #444; }
+  .instruccion {
+    font-size: 1rem; color: #666; text-align: center; margin-bottom: 12px;
+    background: #f8f9fa; padding: 8px 12px; border-radius: 10px; width: 100%;
+  }
+
+  /* Estación 1 */
+  .letras-mezcla { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; padding: 10px; }
+  .letra-mezcla {
+    width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: bold; cursor: pointer; background: #f0f0f0; border: 2px solid #ddd; color: #555;
+    transition: all 0.2s; user-select: none;
+  }
+  .letra-mezcla.acertada { background: #2ECC71; color: #fff; border-color: #27AE60; animation: pop 0.4s ease; }
+  .letra-mezcla.errada { background: #E74C3C; color: #fff; border-color: #C0392B; animation: shake 0.4s ease; }
+  .progreso { font-size: 1rem; color: #666; margin-top: 8px; font-weight: bold; }
+
+  /* Estación 2 */
+  .emoji-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; margin-bottom: 12px; }
+  .emoji-item {
+    aspect-ratio: 1; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+    background: #f8f9fa; border: 2px solid #e0e0e0; cursor: pointer; transition: all 0.2s;
+  }
+  .emoji-item.seleccionado-si { background: #2ECC71; border-color: #27AE60; }
+  .emoji-item.seleccionado-no { background: #E74C3C; border-color: #C0392B; opacity: 0.7; }
+  .zona-clasificacion { display: flex; gap: 12px; width: 100%; margin-top: 8px; }
+  .zona-btn {
+    flex: 1; padding: 14px; border-radius: 14px; font-size: 1.2rem; font-weight: bold;
+    border: 3px solid; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .zona-si { background: #d4edda; border-color: #27AE60; color: #155724; }
+  .zona-no { background: #f8d7da; border-color: #E74C3C; color: #721c24; }
+  .zona-btn.activo { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+  /* Estación 3 */
+  .silabas-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; margin-bottom: 12px; }
+  .silaba-card {
+    background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 14px; padding: 14px; text-align: center;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .silaba-card .silaba-texto { font-size: 1.6rem; font-weight: bold; color: #444; }
+  .silaba-card .silaba-emoji { font-size: 2rem; margin-top: 6px; }
+  .silaba-card.acertada { background: #d4edda; border-color: #27AE60; }
+  .silaba-card.errada { background: #f8d7da; border-color: #E74C3C; animation: shake 0.4s; }
+
+  /* Estación 4 */
+  .piramide-container { width: 100%; margin-bottom: 16px; }
+  .piramide-emoji { font-size: 2.5rem; text-align: center; margin-bottom: 8px; }
+  .piramide-niveles { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .piramide-nivel {
+    padding: 10px 20px; border-radius: 10px; background: #e9ecef; border: 2px solid #ced4da;
+    font-size: 1.3rem; font-weight: bold; color: #555; cursor: pointer; transition: all 0.2s;
+    min-width: 120px; text-align: center;
+  }
+  .piramide-nivel.activo { background: #fff3cd; border-color: #F39C12; }
+  .piramide-nivel.completado { background: #d4edda; border-color: #27AE60; color: #155724; }
+  .piramide-nivel.errado { background: #f8d7da; border-color: #E74C3C; animation: shake 0.4s; }
+
+  /* Estación 5 */
+  .articulos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; margin-bottom: 12px; }
+  .articulo-card {
+    background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 14px; padding: 12px; text-align: center;
+  }
+  .articulo-card .art-emoji { font-size: 2.5rem; }
+  .articulo-card .art-botones { display: flex; gap: 6px; margin-top: 8px; justify-content: center; }
+  .art-btn {
+    padding: 6px 14px; border-radius: 8px; font-size: 1rem; font-weight: bold;
+    border: 2px solid; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .art-btn.el { background: #e3f2fd; border-color: #2980B9; color: #1565C0; }
+  .art-btn.la { background: #fce4ec; border-color: #E91E63; color: #C2185B; }
+  .art-btn.seleccionado { transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .art-btn.correcto { background: #2ECC71; color: #fff; border-color: #27AE60; }
+  .art-btn.incorrecto { background: #E74C3C; color: #fff; border-color: #C0392B; animation: shake 0.4s; }
+
+  /* Estación 6 */
+  .lectura-texto {
+    font-size: 1.15rem; line-height: 1.7; text-align: center; background: #fffbe6;
+    border: 2px dashed #F39C12; border-radius: 14px; padding: 16px; margin-bottom: 16px; width: 100%; color: #444;
+  }
+  .pregunta-box { width: 100%; margin-bottom: 14px; background: #f8f9fa; border-radius: 14px; padding: 14px; border: 2px solid #e0e0e0; }
+  .pregunta-texto { font-size: 1.1rem; font-weight: bold; color: #444; margin-bottom: 10px; }
+  .opciones { display: flex; flex-direction: column; gap: 8px; }
+  .opcion {
+    padding: 12px 14px; border-radius: 10px; background: #fff; border: 2px solid #ddd;
+    font-size: 1rem; cursor: pointer; transition: all 0.15s; text-align: left; font-family: inherit;
+  }
+  .opcion:hover { background: #f0f0f0; }
+  .opcion.correcta { background: #d4edda; border-color: #27AE60; color: #155724; }
+  .opcion.incorrecta { background: #f8d7da; border-color: #E74C3C; color: #721c24; animation: shake 0.4s; }
+
+  /* Botón siguiente */
+  .btn-siguiente {
+    background: #2ECC71; color: #fff; border: none; border-radius: 50px;
+    padding: 16px 36px; font-size: 1.2rem; font-weight: bold;
+    box-shadow: 0 5px 0 #27AE60, 0 6px 12px rgba(0,0,0,0.2);
+    cursor: pointer; margin-top: 16px; font-family: inherit; display: none; transition: all 0.1s;
+  }
+  .btn-siguiente.visible { display: block; }
+  .btn-siguiente:active { transform: translateY(3px); box-shadow: 0 2px 0 #27AE60; }
+
+  .btn-volver {
+    background: rgba(255,255,255,0.2); color: #fff; border: 2px solid rgba(255,255,255,0.4);
+    border-radius: 50px; padding: 10px 24px; font-size: 1rem; cursor: pointer; margin-top: 12px; font-family: inherit;
+  }
+
+  .celebracion {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center;
+    z-index: 10000; flex-direction: column;
+  }
+  .celebracion.active { display: flex; }
+  .celebracion-box {
+    background: #fff; border-radius: 24px; padding: 30px; text-align: center; max-width: 320px; animation: pop 0.5s ease;
+  }
+  .celebracion-box .emoji-grande { font-size: 4rem; }
+  .celebracion-box h3 { font-size: 1.6rem; color: #2ECC71; margin: 12px 0; }
+  .celebracion-box p { color: #666; margin-bottom: 16px; }
+  .celebracion-box button {
+    background: #FFD700; color: #333; border: none; border-radius: 50px;
+    padding: 14px 28px; font-size: 1.1rem; font-weight: bold; font-family: inherit; cursor: pointer;
+  }
+
+  .barra-progreso {
+    width: 100%; max-width: 480px; height: 8px; background: rgba(255,255,255,0.3);
+    border-radius: 4px; margin-bottom: 12px; overflow: hidden;
+  }
+  .barra-progreso-fill { height: 100%; background: #FFD700; border-radius: 4px; transition: width 0.4s ease; }
+
+  @media (max-width: 360px) {
+    .letras-grid { gap: 8px; }
+    .letra-card { font-size: 1.6rem; }
+    .emoji-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .emoji-item { font-size: 1.8rem; }
+    .silabas-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .articulos-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div id="screen-inicio" class="screen active">
+  <div class="inicio-box">
+    <h1>El Tren de las Palabras</h1>
+    <span class="tren-emoji">🚂</span>
+    <p style="color:#fff; font-size:1.1rem; margin-bottom:20px;">¡Aprende las letras jugando!</p>
+    <button class="btn-principal" onclick="irAMenu()">Comenzar viaje 🚂</button>
+  </div>
+</div>
+
+<div id="screen-menu" class="screen">
+  <div class="menu-header">
+    <h2>🚂 Elige una letra</h2>
+    <p style="color:#fff; opacity:0.8; font-size:0.95rem;">Toca una letra para comenzar</p>
+  </div>
+  <div class="letras-grid" id="letras-grid"></div>
+  <button class="btn-volver" onclick="irAInicio()">← Volver al inicio</button>
+</div>
+
+<div id="screen-estacion" class="screen">
+  <div class="estacion-header">
+    <div class="letra-titulo" id="est-letra">M</div>
+    <div class="sonido" id="est-sonido">Mmm... como Mamá</div>
+  </div>
+  <div class="barra-progreso"><div class="barra-progreso-fill" id="barra-fill" style="width:0%"></div></div>
+  <div class="tabs" id="est-tabs"></div>
+  <div class="estacion-contenido" id="est-contenido"></div>
+  <button class="btn-siguiente" id="btn-sig" onclick="siguienteEstacion()">Siguiente 🚂</button>
+  <button class="btn-volver" onclick="irAMenu()">← Menú de letras</button>
+</div>
+
+<div id="celebracion" class="celebracion" onclick="cerrarCelebracion()">
+  <div class="celebracion-box" onclick="event.stopPropagation()">
+    <div class="emoji-grande" id="cel-emoji">🎉</div>
+    <h3 id="cel-titulo">¡Muy bien!</h3>
+    <p id="cel-texto">¡Sigues aprendiendo!</p>
+    <button onclick="cerrarCelebracion()">Continuar 🚂</button>
+  </div>
+</div>
+
+<script>
+
+const DATOS = [
+  {"l":"M","c":"#D4451A","son":"Mmm... como Mamá","aud":[{"e":"🐒","t":1},{"e":"🌽","t":1},{"e":"🐝","t":1},{"e":"🍈","t":1},{"e":"👩","t":1},{"e":"🧹","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["MA","ME","MI","MO","MU"],"comp":[{"e":"👩","v":"MA","p":"MAMÁ"},{"e":"🍈","v":"ME","p":"MELÓN"},{"e":"🐝","v":"MI","p":"MIEL"},{"e":"🌽","v":"MA","p":"MAIZ"}],"pir":[{"e":"👩","p":["M","MA","MAM","MAMA"]},{"e":"🐝","p":["M","MI","MIM","MIMA"]},{"e":"👶","p":["M","ME","MEM","MEMO"]}],"art":[{"e":"🌽","r":"EL"},{"e":"🍈","r":"EL"},{"e":"👩","r":"LA"},{"e":"🐝","r":"LA"},{"e":"🐒","r":"EL"},{"e":"🦁","r":"EL"}],"lec":{"tx":"MAMÁ AMA A MIMÍ. MIMÍ MIMA A MAMÁ. MAMÁ LE DA LA MÍA A MIMÍ.","p":[["MAMÁ AMA A...",["MONO","MIMÍ","MIEL"],1],["MIMÍ MIMA A...",["MAÍZ","MAMÁ","MELÓN"],1],["MAMÁ LE DA...",["LA MIEL","LA MÍA","EL MONO"],1]],"o":["Mamá ama a Mimí.","Mimí mima a Mamá.","Mamá le da la mía a Mimí."]}},
+  {"l":"P","c":"#E67E22","son":"P-p-p... como Papá","aud":[{"e":"🍐","t":1},{"e":"🍍","t":1},{"e":"🥔","t":1},{"e":"🐼","t":1},{"e":"👨","t":1},{"e":"🐒","t":0},{"e":"🌽","t":0},{"e":"🐱","t":0}],"sile":["PA","PE","PI","PO","PU"],"comp":[{"e":"👨","v":"PA","p":"PAPÁ"},{"e":"🥔","v":"PA","p":"PAPA"},{"e":"🍐","v":"PE","p":"PERA"},{"e":"🍍","v":"PI","p":"PIÑA"}],"pir":[{"e":"👨","p":["P","PA","PAP","PAPA"]},{"e":"🍍","p":["P","PI","PIN","PIÑA"]},{"e":"🍐","p":["P","PE","PER","PERA"]}],"art":[{"e":"🍐","r":"LA"},{"e":"🍍","r":"LA"},{"e":"🥔","r":"LA"},{"e":"🐼","r":"EL"},{"e":"👨","r":"EL"},{"e":"🦁","r":"EL"}],"lec":{"tx":"PAPÁ PELA LA PERA. PEPE PELA LA PIÑA. PAPÁ LE DA LA PERA A PEPE.","p":[["PAPÁ PELA...",["LA PERA","EL POLLO","EL PERRO"],0],["PEPE PELA...",["LA PERA","LA PIÑA","LA PAPA"],1],["PAPÁ LE DA...",["AL POLLO","A PEPE","AL PERRO"],1]],"o":["Papá pela la pera.","Pepe pela la piña.","Papá le da la pera a Pepe."]}},
+  {"l":"L","c":"#D4A843","son":"L-l-l... como Lámpara","aud":[{"e":"🦁","t":1},{"e":"🍋","t":1},{"e":"🐺","t":1},{"e":"🌙","t":1},{"e":"🧡","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["LA","LE","LI","LO","LU"],"comp":[{"e":"🦁","v":"LE","p":"LEÓN"},{"e":"🍋","v":"LI","p":"LIMÓN"},{"e":"🐺","v":"LO","p":"LOBO"},{"e":"🌙","v":"LU","p":"LUNA"}],"pir":[{"e":"🦁","p":["L","LE","LEO","LEÓN"]},{"e":"🍋","p":["L","LI","LIM","LIMÓ","LIMÓN"]},{"e":"🌙","p":["L","LU","LUN","LUNA"]}],"art":[{"e":"🦁","r":"EL"},{"e":"🍋","r":"EL"},{"e":"🐺","r":"EL"},{"e":"🌙","r":"LA"},{"e":"🧡","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"LOLA LE DA EL LIMÓN AL LEÓN. EL LOBO MIRA LA LUNA.","p":[["LOLA LE DA...",["EL LEÓN","EL LIMÓN","EL LOBO"],1],["EL LOBO MIRA...",["LA LIMA","LA LUNA","LA LECHE"],1],["LOLA LE DA EL LIMÓN...",["AL LOBO","AL LEÓN","A LA LUNA"],1]],"o":["Lola le da el limón al león.","El lobo mira la luna.","Lola le da el limón al león."]}},
+  {"l":"S","c":"#27AE60","son":"Ssss... como Serpiente","aud":[{"e":"🐍","t":1},{"e":"🍉","t":1},{"e":"🧦","t":1},{"e":"🌻","t":1},{"e":"🕷️","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["SA","SE","SI","SO","SU"],"comp":[{"e":"🐍","v":"SE","p":"SERPIENTE"},{"e":"🍉","v":"SA","p":"SANDÍA"},{"e":"🧦","v":"SO","p":"SOCK"},{"e":"🌻","v":"SO","p":"SOL"}],"pir":[{"e":"🐍","p":["S","SE","SER","SERP","SERPI","SERPIE","SERPIEN","SERPIENT","SERPIENTE"]},{"e":"🍉","p":["S","SA","SAN","SAND","SANDÍ","SANDÍA"]},{"e":"🌻","p":["S","SO","SOL"]}],"art":[{"e":"🐍","r":"LA"},{"e":"🍉","r":"LA"},{"e":"🧦","r":"LOS"},{"e":"🌻","r":"EL"},{"e":"🕷️","r":"LA"},{"e":"🐱","r":"LA"}],"lec":{"tx":"SUSI MIRA LA SERPIENTE EN EL SOL. SANDÍA SALE DEL SOL.","p":[["SUSI MIRA...",["LA SERPIENTE","EL SOL","LA SANDÍA"],0],["SANDÍA SALE...",["DEL SOL","DE LA SELVA","DE LA SERPIENTE"],0],["SUSI LE DA...",["AL SOL","A LA SERPIENTE","AL SAPO"],2]],"o":["Susi mira la serpiente en el sol.","Sandía sale del sol.","Susi le da la sandía a la serpiente."]}},
+  {"l":"T","c":"#2980B9","son":"T-t-t... como Tambor","aud":[{"e":"🥁","t":1},{"e":"🐯","t":1},{"e":"🐢","t":1},{"e":"🍅","t":1},{"e":"🌮","t":1},{"e":"🐒","t":0},{"e":"🐍","t":0},{"e":"🐺","t":0}],"sile":["TA","TE","TI","TO","TU"],"comp":[{"e":"🥁","v":"TA","p":"TAMBOR"},{"e":"🌮","v":"TA","p":"TACO"},{"e":"🐯","v":"TI","p":"TIGRE"},{"e":"🍅","v":"TO","p":"TOMATE"}],"pir":[{"e":"🥁","p":["T","TA","TAM","TAMB","TAMBO","TAMBOR"]},{"e":"🐯","p":["T","TI","TIG","TIGR","TIGRE"]},{"e":"🐢","p":["T","TO","TOR","TORT","TORTU","TORTUGA"]}],"art":[{"e":"🥁","r":"EL"},{"e":"🐯","r":"EL"},{"e":"🐢","r":"LA"},{"e":"🍅","r":"EL"},{"e":"🌮","r":"EL"},{"e":"🦁","r":"EL"}],"lec":{"tx":"TITO TOCA EL TAMBOR. TOMÁS TOMA EL TOMATE. TITO LE DA EL TAMBOR A TOMÁS.","p":[["TITO TOCA...",["EL TAMBOR","EL TOMATE","EL TIGRE"],0],["TOMÁS TOMA...",["EL TAMBOR","EL TOMATE","EL TACO"],1],["TITO LE DA...",["AL TIGRE","A TOMÁS","AL TACO"],1]],"o":["Tito toca el tambor.","Tomás toma el tomate.","Tito le da el tambor a Tomás."]}},
+  {"l":"N","c":"#8E44AD","son":"N-n-n... como Nube","aud":[{"e":"☁️","t":1},{"e":"🍌","t":1},{"e":"🥜","t":1},{"e":"👶","t":1},{"e":"🍊","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["NA","NE","NI","NO","NU"],"comp":[{"e":"🍌","v":"NA","p":"NARANJA"},{"e":"🥜","v":"NU","p":"NUECES"},{"e":"👶","v":"NI","p":"NIÑO"},{"e":"🍊","v":"NA","p":"NARANJA"}],"pir":[{"e":"🍌","p":["N","NA","NAR","NARA","NARAN","NARANJ","NARANJA"]},{"e":"👶","p":["N","NI","NIÑ","NIÑO"]},{"e":"☁️","p":["N","NU","NUB","NUBE"]}],"art":[{"e":"☁️","r":"LA"},{"e":"🍌","r":"LA"},{"e":"🥜","r":"LAS"},{"e":"👶","r":"EL"},{"e":"🍊","r":"LA"},{"e":"🐱","r":"LA"}],"lec":{"tx":"NUNO MIRA LA NUBE. LA NARANJA SALE DEL NIÑO.","p":[["NUNO MIRA...",["LA NUBE","EL NIÑO","LA NARANJA"],0],["NARANJA SALE...",["DE LA NUBE","DEL NIÑO","DE LA NANA"],1],["NUNO LE DA...",["AL NIÑO","A LA NUBE","AL PERRO"],0]],"o":["Nuno mira la nube.","La naranja sale del niño.","Nuno le da la naranja al niño."]}},
+  {"l":"D","c":"#C0392B","son":"D-d-d... como Dedo","aud":[{"e":"🖐️","t":1},{"e":"🦷","t":1},{"e":"🍩","t":1},{"e":"🏠","t":1},{"e":"🐬","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["DA","DE","DI","DO","DU"],"comp":[{"e":"🖐️","v":"DE","p":"DEDO"},{"e":"🦷","v":"DI","p":"DIENTE"},{"e":"🍩","v":"DO","p":"DONA"},{"e":"🏠","v":"DO","p":"DOMO"}],"pir":[{"e":"🖐️","p":["D","DE","DED","DEDO"]},{"e":"🦷","p":["D","DI","DIE","DIEN","DIENT","DIENTE"]},{"e":"🍩","p":["D","DO","DON","DONA"]}],"art":[{"e":"🖐️","r":"EL"},{"e":"🦷","r":"EL"},{"e":"🍩","r":"LA"},{"e":"🏠","r":"LA"},{"e":"🐬","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"DANIELA MIRA EL DEDO. DONA SALE DEL DIENTE. DANIELA LE DA LA DONA AL DEDO.","p":[["DANIELA MIRA...",["EL DEDO","EL DIENTE","LA DONA"],0],["DONA SALE...",["DEL DIENTE","DEL DEDO","DE LA CASA"],0],["DANIELA LE DA...",["AL DIENTE","AL DEDO","A LA DONA"],1]],"o":["Daniela mira el dedo.","Dona sale del diente.","Daniela le da la dona al dedo."]}},
+  {"l":"R","c":"#F39C12","son":"R-r-r... como Ratón","aud":[{"e":"🐭","t":1},{"e":"🌹","t":1},{"e":"🍚","t":1},{"e":"🤖","t":1},{"e":"🦞","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["RA","RE","RI","RO","RU"],"comp":[{"e":"🐭","v":"RA","p":"RATÓN"},{"e":"🌹","v":"RO","p":"ROSA"},{"e":"🍚","v":"AR","p":"ARROZ"},{"e":"🤖","v":"RO","p":"ROBOT"}],"pir":[{"e":"🐭","p":["R","RA","RAT","RATÓ","RATÓN"]},{"e":"🌹","p":["R","RO","ROS","ROSA"]},{"e":"🤖","p":["R","RO","ROB","ROBO","ROBOT"]}],"art":[{"e":"🐭","r":"EL"},{"e":"🌹","r":"LA"},{"e":"🍚","r":"EL"},{"e":"🤖","r":"EL"},{"e":"🦞","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"RAMIRO MIRA EL RATÓN. ROSA SALE DEL ROBOT. RAMIRO LE DA LA ROSA AL RATÓN.","p":[["RAMIRO MIRA...",["EL RATÓN","LA ROSA","EL ROBOT"],0],["ROSA SALE...",["DEL RATÓN","DEL ROBOT","DE LA CASA"],1],["RAMIRO LE DA...",["AL ROBOT","A LA ROSA","AL RATÓN"],2]],"o":["Ramiro mira el ratón.","Rosa sale del robot.","Ramiro le da la rosa al ratón."]}},
+  {"l":"C","c":"#16A085","son":"C-c-c... como Casa","aud":[{"e":"🏠","t":1},{"e":"☕","t":1},{"e":"🍪","t":1},{"e":"🐶","t":1},{"e":"🎁","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["CA","CE","CI","CO","CU"],"comp":[{"e":"🏠","v":"CA","p":"CASA"},{"e":"☕","v":"CA","p":"CAFÉ"},{"e":"🍪","v":"CO","p":"COOKIE"},{"e":"🐶","v":"CA","p":"CACHORRO"}],"pir":[{"e":"🏠","p":["C","CA","CAS","CASA"]},{"e":"☕","p":["C","CA","CAF","CAFÉ"]},{"e":"🐶","p":["C","CA","CAC","CACH","CACHO","CACHOR","CACHORR","CACHORRO"]}],"art":[{"e":"🏠","r":"LA"},{"e":"☕","r":"EL"},{"e":"🍪","r":"LA"},{"e":"🐶","r":"EL"},{"e":"🎁","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"CARLA MIRA LA CASA. COOKIE SALE DEL CAFÉ. CARLA LE DA LA COOKIE A LA CASA.","p":[["CARLA MIRA...",["LA CASA","EL CAFÉ","LA COOKIE"],0],["COOKIE SALE...",["DE LA CASA","DEL CAFÉ","DEL PERRO"],1],["CARLA LE DA...",["AL CAFÉ","A LA CASA","A LA COOKIE"],0]],"o":["Carla mira la casa.","Cookie sale del café.","Carla le da la cookie a la casa."]}},
+  {"l":"F","c":"#2ECC71","son":"F-f-f... como Foca","aud":[{"e":"🦭","t":1},{"e":"🍟","t":1},{"e":"🌸","t":1},{"e":"🐸","t":1},{"e":"🎯","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["FA","FE","FI","FO","FU"],"comp":[{"e":"🦭","v":"FO","p":"FOCA"},{"e":"🍟","v":"FR","p":"FRITAS"},{"e":"🌸","v":"FL","p":"FLOR"},{"e":"🐸","v":"FA","p":"FARO"}],"pir":[{"e":"🦭","p":["F","FO","FOC","FOCA"]},{"e":"🌸","p":["F","FL","FLO","FLOR"]},{"e":"🐸","p":["F","FA","FAR","FARO"]}],"art":[{"e":"🦭","r":"LA"},{"e":"🍟","r":"LAS"},{"e":"🌸","r":"LA"},{"e":"🐸","r":"LA"},{"e":"🎯","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"FABIÁN MIRA LA FOCA EN EL FARO. LA FLOR SALE DEL FARO. FABIÁN LE DA LA FLOR A LA FOCA.","p":[["FABIÁN MIRA...",["LA FOCA","LA FLOR","EL FARO"],0],["LA FLOR SALE...",["DE LA FOCA","DEL FARO","DE LA CASA"],1],["FABIÁN LE DA...",["AL FARO","A LA FOCA","A LA FLOR"],1]],"o":["Fabián mira la foca en el faro.","La flor sale del faro.","Fabián le da la flor a la foca."]}},
+  {"l":"B","c":"#1ABC9C","son":"B-b-b... como Burro","aud":[{"e":"🐴","t":1},{"e":"🚗","t":1},{"e":"🧈","t":1},{"e":"🦉","t":1},{"e":"🧸","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["BA","BE","BI","BO","BU"],"comp":[{"e":"🐴","v":"BU","p":"BURRO"},{"e":"🧈","v":"BO","p":"BOTELLA"},{"e":"🦉","v":"BU","p":"BUHO"},{"e":"🧸","v":"BO","p":"BONITO"}],"pir":[{"e":"🐴","p":["B","BU","BUR","BURR","BURRO"]},{"e":"🦉","p":["B","BU","BUH","BUHO"]},{"e":"🧸","p":["B","BO","BON","BONI","BONIT","BONITO"]}],"art":[{"e":"🐴","r":"EL"},{"e":"🚗","r":"EL"},{"e":"🧈","r":"LA"},{"e":"🦉","r":"EL"},{"e":"🧸","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"BENITO MIRA EL BURRO. BOTELLA SALE DEL BUHO. BENITO LE DA LA BOTELLA AL BURRO.","p":[["BENITO MIRA...",["EL BURRO","LA BOTELLA","EL BUHO"],0],["BOTELLA SALE...",["DEL BURRO","DEL BUHO","DE LA CASA"],1],["BENITO LE DA...",["AL BUHO","AL BURRO","A LA BOTELLA"],0]],"o":["Benito mira el burro.","Botella sale del búho.","Benito le da la botella al burro."]}},
+  {"l":"G","c":"#E74C3C","son":"G-g-g... como Gato","aud":[{"e":"🐱","t":1},{"e":"🎸","t":1},{"e":"🍇","t":1},{"e":"🐔","t":1},{"e":"🌍","t":1},{"e":"🐒","t":0},{"e":"🐍","t":0},{"e":"🐺","t":0}],"sile":["GA","GE","GI","GO","GU"],"comp":[{"e":"🐱","v":"GA","p":"GATO"},{"e":"🎸","v":"GU","p":"GUITARRA"},{"e":"🍇","v":"GU","p":"GUINEO"},{"e":"🐔","v":"GA","p":"GALLINA"}],"pir":[{"e":"🐱","p":["G","GA","GAT","GATO"]},{"e":"🎸","p":["G","GU","GUI","GUIT","GUITA","GUITAR","GUITARR","GUITARRA"]},{"e":"🐔","p":["G","GA","GAL","GALL","GALLI","GALLIN","GALLINA"]}],"art":[{"e":"🐱","r":"EL"},{"e":"🎸","r":"LA"},{"e":"🍇","r":"LA"},{"e":"🐔","r":"LA"},{"e":"🌍","r":"EL"},{"e":"🦁","r":"EL"}],"lec":{"tx":"GABI MIRA EL GATO. LA GUITARRA SALE DE LA GALLINA.","p":[["GABI MIRA...",["EL GATO","LA GUITARRA","LA GALLINA"],0],["LA GUITARRA SALE...",["DEL GATO","DE LA GALLINA","DE LA CASA"],1],["GABI LE DA...",["A LA GALLINA","AL GATO","A LA GUITARRA"],2]],"o":["Gabi mira el gato.","La guitarra sale de la gallina.","Gabi le da la guitarra a la gallina."]}},
+  {"l":"J","c":"#9B59B6","son":"J-j-j... como Jabalí","aud":[{"e":"🐗","t":1},{"e":"🧃","t":1},{"e":"🫒","t":1},{"e":"🧩","t":1},{"e":"🥣","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["JA","JE","JI","JO","JU"],"comp":[{"e":"🧃","v":"JU","p":"JUGO"},{"e":"🧩","v":"JU","p":"JUGUETE"},{"e":"🥣","v":"JU","p":"JUGAR"},{"e":"🫒","v":"JA","p":"JABALÍ"}],"pir":[{"e":"🧃","p":["J","JU","JUG","JUGO"]},{"e":"🧩","p":["J","JU","JUG","JUGU","JUGUE","JUGUET","JUGUETE"]},{"e":"🫒","p":["J","JA","JAB","JABA","JABAL","JABALÍ"]}],"art":[{"e":"🐗","r":"EL"},{"e":"🧃","r":"EL"},{"e":"🫒","r":"LA"},{"e":"🧩","r":"EL"},{"e":"🥣","r":"LA"},{"e":"🐱","r":"LA"}],"lec":{"tx":"JAIME MIRA EL JABALÍ. JUGO SALE DEL JUGUETE. JAIME LE DA EL JUGO AL JABALÍ.","p":[["JAIME MIRA...",["EL JABALÍ","EL JUGO","EL JUGUETE"],0],["JUGO SALE...",["DEL JABALÍ","DEL JUGUETE","DE LA CASA"],1],["JAIME LE DA...",["AL JUGUETE","AL JABALÍ","AL JUGO"],1]],"o":["Jaime mira el jabalí.","Jugo sale del juguete.","Jaime le da el jugo al jabalí."]}},
+  {"l":"Ñ","c":"#D4A843","son":"Ñ-ñ-ñ... como Ñoño","aud":[{"e":"🙅","t":1},{"e":"🧅","t":1},{"e":"🦙","t":1},{"e":"🍍","t":1},{"e":"🥞","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["ÑA","ÑE","ÑI","ÑO","ÑU"],"comp":[{"e":"🧅","v":"ÑO","p":"ÑOÑO"},{"e":"🦙","v":"ÑA","p":"ÑANDÚ"},{"e":"🍍","v":"ÑI","p":"PIÑA"},{"e":"🥞","v":"ÑO","p":"ÑOQUIS"}],"pir":[{"e":"🧅","p":["Ñ","ÑO","ÑOÑ","ÑOÑO"]},{"e":"🦙","p":["Ñ","ÑA","ÑAN","ÑAND","ÑANDÚ"]},{"e":"🥞","p":["Ñ","ÑO","ÑOQ","ÑOQU","ÑOQUI","ÑOQUIS"]}],"art":[{"e":"🙅","r":"EL"},{"e":"🧅","r":"LA"},{"e":"🦙","r":"EL"},{"e":"🍍","r":"LA"},{"e":"🥞","r":"LOS"},{"e":"🐱","r":"LA"}],"lec":{"tx":"ÑOÑO MIRA EL ÑOÑO. PIÑA SALE DEL ÑANDÚ.","p":[["ÑOÑO MIRA...",["EL ÑOÑO","LA PIÑA","EL ÑANDÚ"],0],["PIÑA SALE...",["DEL ÑOÑO","DEL ÑANDÚ","DE LA CASA"],1],["ÑOÑO LE DA...",["AL ÑANDÚ","A LA PIÑA","AL ÑOQUIS"],0]],"o":["Ñoño mira el ñoño.","Piña sale del ñandú.","Ñoño le da la piña al ñandú."]}},
+  {"l":"V","c":"#8E44AD","son":"V-v-v... como Vaca","aud":[{"e":"🐄","t":1},{"e":"🚁","t":1},{"e":"🎻","t":1},{"e":"🍇","t":1},{"e":"🌋","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["VA","VE","VI","VO","VU"],"comp":[{"e":"🐄","v":"VA","p":"VACA"},{"e":"🚁","v":"VO","p":"VOLAR"},{"e":"🎻","v":"VI","p":"VIOLÍN"},{"e":"🌋","v":"VO","p":"VOLCÁN"}],"pir":[{"e":"🐄","p":["V","VA","VAC","VACA"]},{"e":"🎻","p":["V","VI","VIO","VIOL","VIOLÍ","VIOLÍN"]},{"e":"🌋","p":["V","VO","VOL","VOLC","VOLCÁ","VOLCÁN"]}],"art":[{"e":"🐄","r":"LA"},{"e":"🚁","r":"EL"},{"e":"🎻","r":"EL"},{"e":"🍇","r":"LA"},{"e":"🌋","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"VALENTINA MIRA LA VACA EN EL VOLCÁN. VIOLÍN SALE DEL VOLCÁN.","p":[["VALENTINA MIRA...",["LA VACA","EL VIOLÍN","EL VOLCÁN"],0],["VIOLÍN SALE...",["DE LA VACA","DEL VOLCÁN","DE LA CASA"],1],["VALENTINA LE DA...",["AL VOLCÁN","A LA VACA","AL VIOLÍN"],1]],"o":["Valentina mira la vaca en el volcán.","Violín sale del volcán.","Valentina le da el violín a la vaca."]}},
+  {"l":"LL","c":"#F39C12","son":"Ll-ll-ll... como Llave","aud":[{"e":"🔑","t":1},{"e":"🦙","t":1},{"e":"🌧️","t":1},{"e":"🍽️","t":1},{"e":"🌳","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["LLA","LLE","LLI","LLO","LLU"],"comp":[{"e":"🔑","v":"LLA","p":"LLAVE"},{"e":"🦙","v":"LLA","p":"LLAMA"},{"e":"🌧️","v":"LLU","p":"LLUVIA"},{"e":"🍽️","v":"LLO","p":"LLOQUE"}],"pir":[{"e":"🔑","p":["LL","LLA","LLAV","LLAVE"]},{"e":"🦙","p":["LL","LLA","LLAM","LLAMA"]},{"e":"🌧️","p":["LL","LLU","LLUV","LLUVI","LLUVIA"]}],"art":[{"e":"🔑","r":"LA"},{"e":"🦙","r":"LA"},{"e":"🌧️","r":"LA"},{"e":"🍽️","r":"EL"},{"e":"🌳","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"LLUVIA MIRA LA LLAVE EN LA LLAMA. LA LLUVIA SALE DE LA LLAMA.","p":[["LLUVIA MIRA...",["LA LLAVE","LA LLAMA","LA LLUVIA"],0],["LA LLUVIA SALE...",["DE LA LLAVE","DE LA LLAMA","DE LA CASA"],1],["LLUVIA LE DA...",["A LA LLAMA","A LA LLAVE","A LA LLUVIA"],0]],"o":["Lluvia mira la llave en la llama.","La lluvia sale de la llama.","Lluvia le da la llave a la llama."]}},
+  {"l":"Z","c":"#E74C3C","son":"Z-z-z... como Zorro","aud":[{"e":"🦊","t":1},{"e":"🥕","t":1},{"e":"☂️","t":1},{"e":"🥾","t":1},{"e":"🧃","t":1},{"e":"🐒","t":0},{"e":"🐱","t":0},{"e":"☀️","t":0}],"sile":["ZA","ZE","ZI","ZO","ZU"],"comp":[{"e":"🦊","v":"ZO","p":"ZORRO"},{"e":"🥕","v":"ZA","p":"ZANAHORIA"},{"e":"🥾","v":"ZA","p":"ZAPATO"},{"e":"🧃","v":"ZU","p":"ZUMO"}],"pir":[{"e":"🦊","p":["Z","ZO","ZOR","ZORR","ZORRO"]},{"e":"🥕","p":["Z","ZA","ZAN","ZANA","ZANAH","ZANAHO","ZANAHOR","ZANAHORI","ZANAHORIA"]},{"e":"🥾","p":["Z","ZA","ZAP","ZAPA","ZAPAT","ZAPATO"]}],"art":[{"e":"🦊","r":"EL"},{"e":"🥕","r":"LA"},{"e":"☂️","r":"EL"},{"e":"🥾","r":"EL"},{"e":"🧃","r":"EL"},{"e":"🐱","r":"LA"}],"lec":{"tx":"ZULEMA MIRA EL ZORRO EN LA SALA. ZANAHORIA SALE DEL ZAPATO. ZULEMA LE DA EL ZUMO AL ZORRO.","p":[["ZULEMA MIRA...",["EL ZORRO","EL ZAPATO","EL ZUMO"],0],["ZANAHORIA SALE...",["DEL ZAPATO","DEL MAÍZ","DE LA CASA"],0],["ZULEMA DA...",["AL GATO","AL ZORRO","AL PERRO"],1]],"o":["Zulema mira el zorro en la sala.","La zanahoria sale del zapato.","Zulema le da el zumo al zorro."]}},
+  {"l":"Y","c":"#3498DB","son":"Y-y-y... como Yegua","aud":[{"e":"🐴","t":1},{"e":"🪀","t":1},{"e":"🧘","t":1},{"e":"🌊","t":1},{"e":"🍙","t":1},{"e":"🦊","t":0},{"e":"🧊","t":0},{"e":"👟","t":0}],"sile":["YA","YE","YI","YO","YU"],"comp":[{"e":"🐴","v":"YE","p":"YEGUA"},{"e":"🪀","v":"YO","p":"YO-YO"},{"e":"🧘","v":"YO","p":"YOGA"},{"e":"🍙","v":"YA","p":"YAYA"}],"pir":[{"e":"🐴","p":["Y","YE","YEG","YEGU","YEGUA"]},{"e":"🪀","p":["Y","YO","YOY","YO-YO"]},{"e":"🧘","p":["Y","YO","YOG","YOGA"]}],"art":[{"e":"🐴","r":"LA"},{"e":"🪀","r":"EL"},{"e":"🧘","r":"EL"},{"e":"🌊","r":"LA"},{"e":"🍙","r":"EL"},{"e":"🌽","r":"LA"}],"lec":{"tx":"YANINA MIRA LA YEGUA EN LA SALA. EL YO-YO SALE DEL YOGA. YANINA LE DA EL YO-YO A ZULEMA.","p":[["YANINA MIRA...",["LA YEGUA","EL YO-YO","EL YOGA"],0],["YO-YO SALE...",["DEL YOGA","DE LA CASA","DE LA FLOR"],0],["YANINA DA...",["AL GATO","A ZULEMA","AL PERRO"],1]],"o":["Yanina mira la yegua en la sala.","El yo-yo sale del yoga.","Yanina le da el yo-yo a Zulema."]}}
+];
+
+
+let letraActual = null;
+let estacionActual = 0;
+let progreso = {};
+let estadoEstacion = {};
+
+const NOMBRES_ESTACIONES = [
+  "🔍 Encuentra la letra",
+  "👂 Oído",
+  "🔤 Sílabas",
+  "🔺 Pirámides",
+  "📰 Artículos",
+  "📖 Lectura"
+];
+
+function mostrarScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function irAInicio() { mostrarScreen('screen-inicio'); }
+function irAMenu() { mostrarScreen('screen-menu'); renderMenu(); }
+
+function renderMenu() {
+  const grid = document.getElementById('letras-grid');
+  grid.innerHTML = '';
+  DATOS.forEach((d, i) => {
+    const card = document.createElement('div');
+    card.className = 'letra-card' + (progreso[d.l]?.completada ? ' completada' : '');
+    card.style.background = d.c;
+    card.innerHTML = `<div class="letra-nombre">${d.l}</div><div class="letra-emoji">🚂</div>`;
+    card.onclick = () => irALetra(i);
+    grid.appendChild(card);
+  });
+}
+
+function irALetra(idx) {
+  letraActual = DATOS[idx];
+  estacionActual = (progreso[letraActual.l]?.estacion) || 0;
+  mostrarScreen('screen-estacion');
+  renderEstacion();
+}
+
+function renderEstacion() {
+  const d = letraActual;
+  document.getElementById('est-letra').textContent = d.l;
+  document.getElementById('est-letra').style.color = d.c;
+  document.getElementById('est-sonido').textContent = d.son;
+  document.getElementById('barra-fill').style.width = ((estacionActual / 6) * 100) + '%';
+
+  const tabs = document.getElementById('est-tabs');
+  tabs.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (i === estacionActual ? ' active' : '') + (i < estacionActual ? ' completada' : '') + (i > estacionActual ? ' bloqueada' : '');
+    tab.textContent = i + 1;
+    if (i <= estacionActual) tab.onclick = () => { estacionActual = i; renderEstacion(); };
+    tabs.appendChild(tab);
+  }
+
+  const cont = document.getElementById('est-contenido');
+  cont.innerHTML = '';
+  document.getElementById('btn-sig').classList.remove('visible');
+
+  const titulo = document.createElement('div');
+  titulo.className = 'estacion-titulo';
+  titulo.textContent = NOMBRES_ESTACIONES[estacionActual];
+  cont.appendChild(titulo);
+
+  estadoEstacion = { completado: false };
+
+  switch (estacionActual) {
+    case 0: initEstacion1(cont, d); break;
+    case 1: initEstacion2(cont, d); break;
+    case 2: initEstacion3(cont, d); break;
+    case 3: initEstacion4(cont, d); break;
+    case 4: initEstacion5(cont, d); break;
+    case 5: initEstacion6(cont, d); break;
+  }
+}
+
+function habilitarSiguiente() {
+  document.getElementById('btn-sig').classList.add('visible');
+  estadoEstacion.completado = true;
+}
+
+function siguienteEstacion() {
+  if (!estadoEstacion.completado) return;
+  if (estacionActual < 5) {
+    estacionActual++;
+    if (!progreso[letraActual.l]) progreso[letraActual.l] = { estacion: 0, completada: false };
+    progreso[letraActual.l].estacion = estacionActual;
+    renderEstacion();
+  } else {
+    if (!progreso[letraActual.l]) progreso[letraActual.l] = { estacion: 0, completada: false };
+    progreso[letraActual.l].completada = true;
+    mostrarCelebracion('🎉', '¡Letra completada!', `¡Aprendiste la letra ${letraActual.l}!`, () => { irAMenu(); });
+  }
+}
+
+function mostrarCelebracion(emoji, titulo, texto, callback) {
+  document.getElementById('cel-emoji').textContent = emoji;
+  document.getElementById('cel-titulo').textContent = titulo;
+  document.getElementById('cel-texto').textContent = texto;
+  const cel = document.getElementById('celebracion');
+  cel.classList.add('active');
+  for (let i = 0; i < 20; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.top = '100vh';
+    c.style.background = ['#FFD700','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4'][Math.floor(Math.random()*5)];
+    c.style.animationDelay = Math.random() * 0.5 + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 2500);
+  }
+  cel.querySelector('button').onclick = () => { cel.classList.remove('active'); if (callback) callback(); };
+}
+function cerrarCelebracion() { document.getElementById('celebracion').classList.remove('active'); }
+
+// ===================== ESTACIÓN 1 =====================
+function initEstacion1(cont, d) {
+  const inst = document.createElement('div');
+  inst.className = 'instruccion';
+  inst.innerHTML = `Toca todas las letras <b style="color:${d.c};font-size:1.3rem;">${d.l}</b> que encuentres. ¡Hay 5 escondidas!`;
+  cont.appendChild(inst);
+
+  const area = document.createElement('div');
+  area.className = 'letras-mezcla';
+  cont.appendChild(area);
+
+  const letras = [];
+  for (let i = 0; i < 5; i++) letras.push({ l: d.l, correcta: true });
+  const distractores = ['A','E','I','O','U','P','L','S','N','D','R','C','F','B','G','J','V','Z','Y','M','T'];
+  const otros = distractores.filter(x => x !== d.l);
+  for (let i = 0; i < 15; i++) letras.push({ l: otros[Math.floor(Math.random() * otros.length)], correcta: false });
+  for (let i = letras.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letras[i], letras[j]] = [letras[j], letras[i]];
+  }
+
+  let encontradas = 0;
+  const prog = document.createElement('div');
+  prog.className = 'progreso';
+  prog.textContent = 'Encontradas: 0 / 5';
+  cont.appendChild(prog);
+
+  letras.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'letra-mezcla';
+    div.textContent = item.l;
+    div.style.transform = `rotate(${Math.random() * 40 - 20}deg) scale(${0.8 + Math.random() * 0.6})`;
+    div.onclick = () => {
+      if (div.classList.contains('acertada') || div.classList.contains('errada')) return;
+      if (item.correcta) {
+        div.classList.add('acertada');
+        encontradas++;
+        prog.textContent = `Encontradas: ${encontradas} / 5`;
+        if (encontradas >= 5) habilitarSiguiente();
+      } else {
+        div.classList.add('errada');
+        setTimeout(() => div.classList.remove('errada'), 600);
+      }
+    };
+    area.appendChild(div);
+  });
+}
+
+// ===================== ESTACIÓN 2 =====================
+function initEstacion2(cont, d) {
+  const inst = document.createElement('div');
+  inst.className = 'instruccion';
+  inst.innerHTML = `¿Cuáles palabras <b style="color:${d.c}">SÍ</b> empiezan con ${d.l}? Toca un emoji y luego SÍ o NO. Necesitas 4 aciertos.`;
+  cont.appendChild(inst);
+
+  const grid = document.createElement('div');
+  grid.className = 'emoji-grid';
+  cont.appendChild(grid);
+
+  const zona = document.createElement('div');
+  zona.className = 'zona-clasificacion';
+  zona.innerHTML = `<button class="zona-btn zona-si" id="zona-si">✅ SÍ</button><button class="zona-btn zona-no" id="zona-no">❌ NO</button>`;
+  cont.appendChild(zona);
+
+  let seleccionado = null;
+  let aciertos = 0;
+  const prog = document.createElement('div');
+  prog.className = 'progreso';
+  prog.textContent = 'Aciertos: 0 / 4';
+  cont.appendChild(prog);
+
+  function clasificar(valor) {
+    if (seleccionado === null) return;
+    const item = d.aud[seleccionado];
+    const div = grid.children[seleccionado];
+    if (div.classList.contains('seleccionado-si') || div.classList.contains('seleccionado-no')) return;
+    const correcto = item.t === valor;
+    if (correcto) {
+      aciertos++;
+      div.classList.add(valor === 1 ? 'seleccionado-si' : 'seleccionado-no');
+    } else {
+      div.classList.add(valor === 1 ? 'seleccionado-no' : 'seleccionado-si');
+      div.style.animation = 'shake 0.4s';
+      setTimeout(() => div.style.animation = '', 400);
+    }
+    seleccionado = null;
+    document.getElementById('zona-si').classList.remove('activo');
+    document.getElementById('zona-no').classList.remove('activo');
+    prog.textContent = `Aciertos: ${aciertos} / 4`;
+    if (aciertos >= 4) habilitarSiguiente();
+  }
+
+  document.getElementById('zona-si').onclick = () => clasificar(1);
+  document.getElementById('zona-no').onclick = () => clasificar(0);
+
+  d.aud.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'emoji-item';
+    div.textContent = item.e;
+    div.onclick = () => {
+      if (div.classList.contains('seleccionado-si') || div.classList.contains('seleccionado-no')) return;
+      seleccionado = i;
+      Array.from(grid.children).forEach(c => c.style.border = '2px solid #e0e0e0');
+      div.style.border = `3px solid ${d.c}`;
+    };
+    grid.appendChild(div);
+  });
+}
+
+// ===================== ESTACIÓN 3 =====================
+function initEstacion3(cont, d) {
+  const inst = document.createElement('div');
+  inst.className = 'instruccion';
+  inst.innerHTML = `Toca la sílaba que corresponde a cada emoji.`;
+  cont.appendChild(inst);
+
+  const grid = document.createElement('div');
+  grid.className = 'silabas-grid';
+  cont.appendChild(grid);
+
+  let aciertos = 0;
+  const prog = document.createElement('div');
+  prog.className = 'progreso';
+  prog.textContent = 'Emparejados: 0 / ' + d.comp.length;
+  cont.appendChild(prog);
+
+  const comps = [...d.comp].sort(() => Math.random() - 0.5);
+
+  comps.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'silaba-card';
+    card.innerHTML = `<div class="silaba-emoji">${item.e}</div><div class="silaba-texto" style="margin-top:8px;">?</div>`;
+
+    const opcionesDiv = document.createElement('div');
+    opcionesDiv.style.display = 'flex'; opcionesDiv.style.flexWrap = 'wrap'; opcionesDiv.style.gap = '6px';
+    opcionesDiv.style.justifyContent = 'center'; opcionesDiv.style.marginTop = '8px';
+
+    let silabasOpciones = [...new Set([...d.sile, item.v])].sort(() => Math.random() - 0.5).slice(0, 4);
+    if (!silabasOpciones.includes(item.v)) silabasOpciones[0] = item.v;
+    silabasOpciones.sort(() => Math.random() - 0.5);
+
+    silabasOpciones.forEach(sil => {
+      const btn = document.createElement('button');
+      btn.textContent = sil;
+      btn.style.padding = '6px 12px'; btn.style.borderRadius = '8px'; btn.style.border = '2px solid #ddd';
+      btn.style.background = '#fff'; btn.style.fontSize = '1rem'; btn.style.fontWeight = 'bold';
+      btn.style.cursor = 'pointer'; btn.style.fontFamily = 'inherit';
+      btn.onclick = () => {
+        if (card.classList.contains('acertada') || card.classList.contains('errada')) return;
+        if (sil === item.v) {
+          card.classList.add('acertada');
+          card.querySelector('.silaba-texto').textContent = item.v + ' → ' + item.p;
+          aciertos++;
+          prog.textContent = `Emparejados: ${aciertos} / ${d.comp.length}`;
+          if (aciertos >= d.comp.length) habilitarSiguiente();
+        } else {
+          card.classList.add('errada');
+          setTimeout(() => card.classList.remove('errada'), 600);
+        }
+      };
+      opcionesDiv.appendChild(btn);
+    });
+
+    card.appendChild(opcionesDiv);
+    grid.appendChild(card);
+  });
+}
+
+// ===================== ESTACIÓN 4 =====================
+function initEstacion4(cont, d) {
+  const inst = document.createElement('div');
+  inst.className = 'instruccion';
+  inst.innerHTML = `Toca cada nivel de la pirámide en orden, de arriba hacia abajo.`;
+  cont.appendChild(inst);
+
+  let piramidesCompletadas = 0;
+  const prog = document.createElement('div');
+  prog.className = 'progreso';
+  prog.textContent = 'Pirámides: 0 / ' + d.pir.length;
+  cont.appendChild(prog);
+
+  d.pir.forEach((pir) => {
+    const container = document.createElement('div');
+    container.className = 'piramide-container';
+    container.style.marginBottom = '20px';
+    container.style.padding = '12px';
+    container.style.background = '#f8f9fa';
+    container.style.borderRadius = '14px';
+
+    const emoji = document.createElement('div');
+    emoji.className = 'piramide-emoji';
+    emoji.textContent = pir.e;
+    container.appendChild(emoji);
+
+    const nivelesDiv = document.createElement('div');
+    nivelesDiv.className = 'piramide-niveles';
+    container.appendChild(nivelesDiv);
+
+    let nivelActual = 0;
+    let completada = false;
+
+    pir.p.forEach((nivel, ni) => {
+      const div = document.createElement('div');
+      div.className = 'piramide-nivel';
+      div.textContent = nivel;
+      div.style.fontSize = (1 + ni * 0.15) + 'rem';
+      div.style.padding = (8 + ni * 2) + 'px ' + (16 + ni * 4) + 'px';
+      div.onclick = () => {
+        if (completada) return;
+        if (ni === nivelActual) {
+          div.classList.add('completado');
+          nivelActual++;
+          if (nivelActual >= pir.p.length) {
+            completada = true;
+            piramidesCompletadas++;
+            prog.textContent = `Pirámides: ${piramidesCompletadas} / ${d.pir.length}`;
+            if (piramidesCompletadas >= d.pir.length) habilitarSiguiente();
+          }
+        } else if (ni > nivelActual) {
+          div.classList.add('errado');
+          setTimeout(() => div.classList.remove('errado'), 400);
+        }
+      };
+      nivelesDiv.appendChild(div);
+    });
+
+    cont.appendChild(container);
+  });
+}
+
+// ===================== ESTACIÓN 5 =====================
+function initEstacion5(cont, d) {
+  const inst = document.createElement('div');
+  inst.className = 'instruccion';
+  inst.innerHTML = `Elige <b>EL</b> o <b>LA</b> para cada emoji.`;
+  cont.appendChild(inst);
+
+  const grid = document.createElement('div');
+  grid.className = 'articulos-grid';
+  cont.appendChild(grid);
+
+  let aciertos = 0;
+  const prog = document.createElement('div');
+  prog.className = 'progreso';
+  prog.textContent = 'Correctos: 0 / ' + d.art.length;
+  cont.appendChild(prog);
+
+  d.art.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'articulo-card';
+    card.innerHTML = `<div class="art-emoji">${item.e}</div><div class="art-botones"><button class="art-btn el">EL</button><button class="art-btn la">LA</button></div>`;
+
+    const btnEl = card.querySelector('.el');
+    const btnLa = card.querySelector('.la');
+
+    function seleccionar(valor, btn, otro) {
+      if (btn.classList.contains('correcto') || btn.classList.contains('incorrecto')) return;
+      if (valor === item.r) {
+        btn.classList.add('correcto');
+        btn.classList.add('seleccionado');
+        aciertos++;
+        prog.textContent = `Correctos: ${aciertos} / ${d.art.length}`;
+        if (aciertos >= d.art.length) habilitarSiguiente();
+      } else {
+        btn.classList.add('incorrecto');
+        setTimeout(() => btn.classList.remove('incorrecto'), 600);
+      }
+    }
+
+    btnEl.onclick = () => seleccionar('EL', btnEl, btnLa);
+    btnLa.onclick = () => seleccionar('LA', btnLa, btnEl);
+
+    grid.appendChild(card);
+  });
+}
+
+// ===================== ESTACIÓN 6 =====================
+function initEstacion6(cont, d) {
+  const inst = document.createElement('div');
+  inst.className = 'instruccion';
+  inst.innerHTML = `Lee el texto y responde las preguntas.`;
+  cont.appendChild(inst);
+
+  const texto = document.createElement('div');
+  texto.className = 'lectura-texto';
+  texto.textContent = d.lec.tx;
+  cont.appendChild(texto);
+
+  let aciertos = 0;
+  const prog = document.createElement('div');
+  prog.className = 'progreso';
+  prog.textContent = 'Preguntas correctas: 0 / ' + d.lec.p.length;
+  cont.appendChild(prog);
+
+  d.lec.p.forEach((preg, pi) => {
+    const box = document.createElement('div');
+    box.className = 'pregunta-box';
+
+    const ptext = document.createElement('div');
+    ptext.className = 'pregunta-texto';
+    ptext.textContent = (pi + 1) + '. ' + preg[0];
+    box.appendChild(ptext);
+
+    const opciones = document.createElement('div');
+    opciones.className = 'opciones';
+
+    preg[1].forEach((op, oi) => {
+      const btn = document.createElement('button');
+      btn.className = 'opcion';
+      btn.textContent = op;
+      btn.onclick = () => {
+        if (btn.classList.contains('correcta') || btn.classList.contains('incorrecta')) return;
+        if (oi === preg[2]) {
+          btn.classList.add('correcta');
+          aciertos++;
+          prog.textContent = `Preguntas correctas: ${aciertos} / ${d.lec.p.length}`;
+          if (aciertos >= d.lec.p.length) habilitarSiguiente();
+        } else {
+          btn.classList.add('incorrecta');
+          setTimeout(() => btn.classList.remove('incorrecta'), 600);
+        }
+      };
+      opciones.appendChild(btn);
+    });
+
+    box.appendChild(opciones);
+    cont.appendChild(box);
+  });
+}
+
+renderMenu();
+</script>
+</body>
+</html>
