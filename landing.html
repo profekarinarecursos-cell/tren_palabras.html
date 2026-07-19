@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tren de Palabras | Profe Karina Recursos</title>
+  <meta name="description" content="App de lectoescritura diseñada por una profesora chilena. Únete a la lista de espera.">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* Colores de Marca: Profe con Propósito */
+    :root {
+      --verde-oscuro: #1B4332;
+      --dorado: #D4A843;
+      --crema: #F8F4E3;
+      --blanco: #FFFFFF;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: var(--crema);
+      color: var(--verde-oscuro);
+      line-height: 1.6;
+    }
+
+    /* Navegación / Header Simple */
+    .top-bar {
+      background-color: var(--verde-oscuro);
+      color: var(--crema);
+      padding: 15px 20px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 80px 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 900;
+      margin-bottom: 20px;
+      line-height: 1.2;
+    }
+    .hero h1 span {
+      color: var(--dorado);
+    }
+    .hero p {
+      font-size: 1.2rem;
+      margin-bottom: 40px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0.9;
+    }
+
+    /* Botón Principal */
+    .btn-cta {
+      display: inline-block;
+      background-color: var(--dorado);
+      color: var(--verde-oscuro);
+      padding: 18px 40px;
+      font-size: 1.2rem;
+      font-weight: 900;
+      text-decoration: none;
+      border-radius: 50px;
+      box-shadow: 0 6px 0 #b38a32;
+      transition: all 0.1s;
+    }
+    .btn-cta:active {
+      transform: translateY(6px);
+      box-shadow: none;
+    }
+
+    /* Galería / Mockup */
+    .mockup-container {
+      margin-top: 50px;
+      background-color: var(--blanco);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(27, 67, 50, 0.1);
+      display: inline-block;
+      width: 100%;
+      max-width: 600px;
+    }
+    .mockup-placeholder {
+      width: 100%;
+      height: 300px;
+      background-color: var(--crema);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--verde-oscuro);
+      font-weight: 700;
+      border: 2px dashed var(--dorado);
+    }
+
+    /* Sección Características */
+    .features-section {
+      background-color: var(--blanco);
+      padding: 80px 20px;
+    }
+    .features-grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+    }
+    .feature-card {
+      background-color: var(--crema);
+      padding: 30px;
+      border-radius: 16px;
+      border-top: 6px solid var(--dorado);
+    }
+    .feature-card h3 {
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+    }
+
+    /* Historia / Sobre Mí */
+    .story-section {
+      padding: 80px 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .story-section h2 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .profe-photo {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: top;
+      border: 6px solid var(--dorado);
+      box-shadow: 0 10px 25px rgba(27, 67, 50, 0.2);
+      margin: -80px auto 20px auto;
+      display: block;
+      background-color: var(--crema);
+    }
+    .story-content {
+      font-size: 1.1rem;
+      text-align: left;
+      background: var(--blanco);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+
+    /* Footer */
+    footer {
+      background-color: var(--verde-oscuro);
+      color: var(--crema);
+      text-align: center;
+      padding: 40px 20px;
+    }
+    footer p { opacity: 0.8; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    Profe con Propósito presenta — Profe Karina Recursos
+  </div>
+
+  <section class="hero">
+    <h1>Aprender a leer nunca fue tan <span>divertido</span> 🚂</h1>
+    <p>La primera app de lectoescritura diseñada paso a paso por una profesora chilena. 7 estaciones de aprendizaje por cada letra del abecedario, sin frustraciones y con vocabulario de nuestro contexto.</p>
+    
+    <!-- AQUÍ PONES EL ENLACE DE TU GOOGLE FORM -->
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfQf8GPKxifcG8Rqu3LaWCtV7bdvDefOgRepzNF7jsupTU1yw/viewform" class="btn-cta" target="_blank">Únete a la Lista de Espera 📝</a>
+    
+    <div class="mockup-container">
+      <img src="hero-image.jpg" alt="Tren de Palabras App" style="width: 100%; height: auto; border-radius: 10px; border: 2px solid var(--dorado);">
+    </div>
+  </section>
+
+  <section class="features-section">
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>👂 Discriminación Auditiva</h3>
+        <p>Desarrollamos la conciencia fonológica sin distracciones visuales. Los niños escuchan y asocian antes de leer.</p>
+      </div>
+      <div class="feature-card">
+        <h3>🔺 Pirámide Lectora</h3>
+        <p>Una metodología comprobada que revela las palabras paso a paso para no abrumar al estudiante.</p>
+      </div>
+      <div class="feature-card">
+        <h3>👩‍🏫 Modo Profesora</h3>
+        <p>Crea hasta 5 perfiles para tus estudiantes o hijos y haz un seguimiento de sus estrellitas y progresos.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="story-section">
+    <br><br>
+    <div class="story-content">
+      <img src="profe-karina.jpg" alt="Profe Karina" class="profe-photo">
+      <h2 style="margin-top: 10px;">Conoce a la creadora 👩‍🏫</h2>
+      <p>Soy <strong>Educadora Diferencial</strong> con amplia experiencia en inclusión educativa y trastornos del lenguaje. Me especializo en Innovación Curricular y Proyectos Educativos, con una fuerte orientación hacia el desarrollo de soluciones tecnológicas para el aula.</p>
+      <br>
+      <p>Creé la plataforma <strong>"Profe con Propósito"</strong> y esta aplicación, <strong>"Tren de Palabras"</strong>, con un objetivo claro: facilitar el aprendizaje en todos los niños, especialmente aquellos con necesidades educativas especiales, respetando sus ritmos y su contexto.</p>
+      <br>
+      <p>Mi misión es construir una educación sostenible basada en innovación, inclusión y calidad pedagógica. ¡Gracias por subirte a este tren!</p>
+    </div>
+  </section>
+
+  <footer>
+    <h2>¡No te quedes abajo del tren! 🚂</h2>
+    <br>
+    <a href="URL_DE_TU_GOOGLE_FORM_AQUI" class="btn-cta" target="_blank">Anotarme en la lista</a>
+    <br><br><br>
+    <p>© 2026 Profe con Propósito. Todos los derechos reservados.</p>
+  </footer>
+
+</body>
+</html>
